@@ -3,25 +3,25 @@
 Personal project: build, secure, then attack an IoT system end to end.
 This phase covers the **base system of the gateway**: a minimal embedded Linux built with Buildroot, first explored in its default configuration, then hardened.
 
-> \*\*Step 1\*\* — Build a first ARM64 embedded Linux, boot it under QEMU and analyze it \*\*before any modification\*\*.
+> **Step 1** — Build a first ARM64 embedded Linux, boot it under QEMU and analyze it **before any modification**.
 
-\---
+---
 
 ## Reproduce
 
 ```bash
-git clone https://gitlab.com/buildroot.org/buildroot.git \&\& cd buildroot
+git clone https://gitlab.com/buildroot.org/buildroot.git && cd buildroot
 git checkout 2025.02.19
-make qemu\_aarch64\_virt\_defconfig
+make qemu_aarch64_virt_defconfig
 make
 output/images/start-qemu.sh      # login: root ; clean shutdown: poweroff
 ```
 
 Full configuration: [`buildroot.config`](buildroot.config)
 
-\---
+---
 
-## 1\. What Buildroot built
+## 1. What Buildroot built
 
 |Property|Value|
 |-|-|
@@ -40,9 +40,9 @@ Full configuration: [`buildroot.config`](buildroot.config)
 
 **Emulated machine:** generic ARM64 `virt` board, 1 core, 128 MB of RAM. The rootfs is exposed as a virtio disk (`/dev/vda`), the console is on the serial port (`ttyAMA0`).
 
-\---
+---
 
-## 2\. From power-on to `login:`
+## 2. From power-on to `login:`
 
 ```
 QEMU (acts as bootloader) → kernel with "root=/dev/vda console=ttyAMA0"
@@ -64,21 +64,21 @@ QEMU (acts as bootloader) → kernel with "root=/dev/vda console=ttyAMA0"
 
 > Killing QEMU abruptly (Ctrl+A X) is equivalent to a power cut: on the next boot, ext4 has to replay its journal (`recovery required`). This is why embedded systems often use a read-only rootfs.
 
-\---
+---
 
-## 3\. The system in numbers
+## 3. The system in numbers
 
 |Metric|Value|
 |-|-|
 |Disk space used|4 MB (vs. more than 8 GB for the Debian development VM)|
 |RAM used|11 MB|
-|System commands|A single BusyBox binary (\~800 KB); every command is a symlink to it|
+|System commands|A single BusyBox binary (~800 KB); every command is a symlink to it|
 |Setuid files|1 (`/bin/busybox`)|
 |Open network ports|0|
 
-\---
+---
 
-## 4\. Security findings
+## 4. Security findings
 
 |#|Finding|Planned fix|
 |-|-|-|
@@ -93,16 +93,16 @@ QEMU (acts as bootloader) → kernel with "root=/dev/vda console=ttyAMA0"
 
 **Already good:** no open ports, system accounts without a login shell (`/bin/false`), a single setuid file.
 
-\---
+---
 
-## 5\. Next steps
+## 5. Next steps
 
-* \[ ] Integrate a C daemon as a Buildroot package (external tree, `BR2\_EXTERNAL`)
-* \[ ] Fix findings 1 to 8
-* \[ ] SELinux in enforcing mode, with a policy for the daemon
-* \[ ] nftables firewall (IPv4 and IPv6)
+* [ ] Integrate a C daemon as a Buildroot package (external tree, `BR2_EXTERNAL`)
+* [ ] Fix findings 1 to 8
+* [ ] SELinux in enforcing mode, with a policy for the daemon
+* [ ] nftables firewall (IPv4 and IPv6)
 
-\---
+---
 
 *References:* [*Buildroot manual*](https://buildroot.org/downloads/manual/manual.html) *· "Linux embarqué", Pierre Ficheux (Eyrolles)*
 
