@@ -82,13 +82,14 @@ Same principle as the Linux gateway (ROM → bootloader → system → first pro
 | 2 | The flash is an **external chip**, readable over USB or after desoldering: code and any stored secret are in plaintext | Flash encryption (key kept in eFuses) |
 | 3 | Debug logs are sent **in plaintext over UART** | Lower log level for production; never log secrets |
 | 4 | Security options live in `sdkconfig` and burn eFuses **irreversibly** | Always verify them in `sdkconfig` (`grep`), never only in the menuconfig UI |
-| 5 | Single application partition: no update path | Two OTA partitions (after checking the actual flash size) |
+| 5 | Single application partition: no update path | Two OTA partitions (4 MB flash: ~1.9 MB each) |
 
 ---
 
 ## Next steps
 
-- [ ] FreeRTOS tasks, queues and synchronization
+- [x] FreeRTOS tasks and queues
+- [ ] Mutex (shared resource protection)
 - [ ] Peripheral driver for a real sensor, written from its datasheet
 - [ ] Wi-Fi station with reliable reconnection
 - [ ] MQTT, then mutual TLS with a private PKI
