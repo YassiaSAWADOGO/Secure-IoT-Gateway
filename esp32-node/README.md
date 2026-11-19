@@ -97,3 +97,46 @@ Same principle as the Linux gateway (ROM → bootloader → system → first pro
 ---
 
 *References: [ESP-IDF Programming Guide (v6.0)](https://docs.espressif.com/projects/esp-idf/en/stable/esp32/)*
+
+---
+
+## Step 2 — FreeRTOS: priorities and queues
+
+### `02-tasks`: priorities and starvation
+
+Two tasks pinned to core 0. `rapide` (priority 6) first used a **busy wait** (`esp_rom_delay_us`), which never gives the CPU back:
+
+```
+I (14788) prio: Rapide : tour 29
+E (15258) task_wdt: Task watchdog got triggered. The following tasks/users did not reset the watchdog in time:
+E (15258) task_wdt:  - IDLE0 (CPU 0)
+E (15258) task_wdt: CPU 0: rapide
+E (15258) task_wdt: CPU 1: IDLE1
+```
+
+`lente` was never even created: `app_main` (priority 1, core 0) stayed preempted by `rapide`. The task watchdog detected that the idle task of core 0 could not run.
+
+With a **blocking delay** (`vTaskDelay`), both tasks run: each one sleeps on its own timer, and priority only matters when several tasks are ready at the same time.
+
+```
+I (258) prio: Rapide : tour 0
+I (258) prio: Lente : tour 0
+I (268) main_task: Returned from app_main()
+I (2258) prio: Rapide : tour 4
+I (2268) prio: Lente : tour 1
+```
+
+**Takeaway:** a high-priority task must block regularly, otherwise it starves every lower-priority task on its core, including `app_main`.
+
+### `03-queue`: producer / consumer
+
+A `capteur` task produces one measurement per second; an `envoi` task consumes one every 2.5 s (simulated slow network). They communicate through a 5-slot queue that **copies** each measurement.
+
+```
+I (7768) queue: Envoi : mesure 3 envoyée (29.3 °C), 4 en attente
+I (8268) queue: Capteur : mesure 8 déposée (26.7 °C)
+W (9368) queue: Capteur : file pleine, mesure 9 PERDUE
+I (10268) queue: Envoi : mesure 4 envoyée (29.3 °C), 4 en attente
+```
+
+**Takeaway:** when the producer is faster than the consumer, the queue fills up and data is lost. Queue size and task rates must be designed together — a real question for the node when Wi-Fi drops: how many measurements should be kept until it comes back?
