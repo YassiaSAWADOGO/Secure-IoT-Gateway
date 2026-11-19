@@ -89,7 +89,7 @@ Same principle as the Linux gateway (ROM → bootloader → system → first pro
 ## Next steps
 
 - [x] FreeRTOS tasks and queues
-- [ ] Mutex (shared resource protection)
+- [x] Mutex (shared resource protection)
 - [ ] Peripheral driver for a real sensor, written from its datasheet
 - [ ] Wi-Fi station with reliable reconnection
 - [ ] MQTT, then mutual TLS with a private PKI
@@ -141,3 +141,20 @@ I (10268) queue: Envoi : mesure 4 envoyée (29.3 °C), 4 en attente
 ```
 
 **Takeaway:** when the producer is faster than the consumer, the queue fills up and data is lost. Queue size and task rates must be designed together — a real question for the node when Wi-Fi drops: how many measurements should be kept until it comes back?
+
+### `04-mutex`: race condition and mutual exclusion
+
+Two tasks, one pinned to each core, increment a shared counter 100,000 times each. `compteur++` is not atomic: it is a read, an add and a write, so the two cores can overwrite each other's updates. `UTILISER_MUTEX` switches the protection on or off at compile time.
+
+```
+I (3258) mutex: Attendu : 200000, obtenu : 106442 (mutex désactivé)
+I (3658) mutex: Attendu : 200000, obtenu : 200000 (mutex activé)
+```
+
+- **Without a mutex**, almost half of the increments are lost. The result was identical across resets: with nothing else running, the timing of both cores is perfectly reproducible. In a real system (Wi-Fi, interrupts, other tasks), it would change from run to run — the bug is there either way.
+- **With a mutex** around `compteur++`, the result is exact, but the work takes **over 3 seconds** instead of a few milliseconds: taking and giving the lock, and waiting for the other core, has a cost.
+
+**Takeaways:**
+- Protect shared resources with a mutex, and keep critical sections as short as possible.
+- Waiting "long enough" (`vTaskDelay(3000)` in `app_main`) is not synchronization: here the main task only printed a correct result because it could not run before the core-0 task finished. Completion should be signaled explicitly (semaphore or task notification).
+- The best design avoids sharing altogether: on the node, the sensor and network tasks will communicate through a queue.
