@@ -1,0 +1,5 @@
+config BR2_PACKAGE_GATEWAYD
+	bool "gatewayd"
+	help
+	  Secure IoT gateway daemon: receives and checks
+	  measurements from the ESP32 nodes.

@@ -90,6 +90,7 @@ QEMU (acts as bootloader) → kernel with "root=/dev/vda console=ttyAMA0"
 |6|Unused `dummy0` and `sit0` interfaces|Remove these features from the kernel|
 |7|IPv6 enabled|Disable it or filter it in the firewall|
 |8|Exact kernel version and build information readable by any user|Keep the kernel updated, reproducible build|
+|9| `gatewayd` runs as **root**: once it parses network data, any exploitable bug gives full control of the gateway | Dedicated unprivileged user, then SELinux confinement |
 
 **Already good:** no open ports, system accounts without a login shell (`/bin/false`), a single setuid file.
 
@@ -97,8 +98,8 @@ QEMU (acts as bootloader) → kernel with "root=/dev/vda console=ttyAMA0"
 
 ## 5. Next steps
 
-* [ ] Integrate a C daemon as a Buildroot package (external tree, `BR2_EXTERNAL`)
-* [ ] Fix findings 1 to 8
+* [x] Integrate a C daemon as a Buildroot package (external tree, `BR2_EXTERNAL`)
+* [ ] Fix findings 1 to 9
 * [ ] SELinux in enforcing mode, with a policy for the daemon
 * [ ] nftables firewall (IPv4 and IPv6)
 
@@ -106,3 +107,36 @@ QEMU (acts as bootloader) → kernel with "root=/dev/vda console=ttyAMA0"
 
 *References:* [*Buildroot manual*](https://buildroot.org/downloads/manual/manual.html) *· "Linux embarqué", Pierre Ficheux (Eyrolles)*
 
+
+---
+
+## Step 2 — External tree and first daemon
+
+My own code lives in a **Buildroot external tree** (`br2-external/`), outside the Buildroot sources: Buildroot stays untouched and everything specific to the gateway is versioned here.
+
+```
+br2-external/
+├── external.desc            # name: GATEWAY → defines BR2_EXTERNAL_GATEWAY_PATH
+├── Config.in                # adds the package to menuconfig
+├── external.mk              # includes every package recipe
+├── configs/gateway_defconfig
+├── package/gatewayd/        # Config.in, gatewayd.mk (generic-package), S90gatewayd
+└── src/gatewayd/            # gatewayd.c, Makefile
+```
+
+**`gatewayd`** is a minimal daemon: it logs to syslog every 10 seconds and stops cleanly on `SIGTERM`. Its Makefile never hardcodes `gcc`: Buildroot passes its cross-compiler and flags through `$(TARGET_CONFIGURE_OPTS)`, so the same source builds for the host (quick tests) and for the ARM64 target.
+
+**`S90gatewayd`** starts it at boot after the network (`S40network`), using BusyBox `start-stop-daemon` and a PID file; `stop` sends `SIGTERM`.
+
+```
+Starting network: OK
+Starting crond: OK
+Starting gatewayd: OK
+```
+
+**Rebuild the gateway image:**
+
+```bash
+make BR2_EXTERNAL=<path>/gateway/br2-external gateway_defconfig
+make
+```

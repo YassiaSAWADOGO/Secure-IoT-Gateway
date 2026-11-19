@@ -1,0 +1,1 @@
+source "$BR2_EXTERNAL_GATEWAY_PATH/package/gatewayd/Config.in"
