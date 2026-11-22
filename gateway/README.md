@@ -156,7 +156,7 @@ make
 ## Next steps
 
 * [x] Integrate a C daemon as a Buildroot package (external tree, `BR2_EXTERNAL`)
-* [ ] Fix findings 2 to 8
+* [ ] Fix findings 2, 6, 7 and 8
 * [ ] SELinux in enforcing mode, with a policy for the daemon
 * [ ] nftables firewall (IPv4 and IPv6)
 
