@@ -2,6 +2,7 @@ GATEWAYD_VERSION = 0.1
 GATEWAYD_SITE = $(BR2_EXTERNAL_GATEWAY_PATH)/src/gatewayd
 GATEWAYD_SITE_METHOD = local
 GATEWAYD_LICENSE = MIT
+GATEWAYD_USERS = gatewayd -1 gatewayd -1 * - - - Secure IoT gateway daemon
 
 define GATEWAYD_BUILD_CMDS
 	$(MAKE) $(TARGET_CONFIGURE_OPTS) -C $(@D)
