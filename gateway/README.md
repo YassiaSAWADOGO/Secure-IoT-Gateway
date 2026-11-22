@@ -141,7 +141,7 @@ make
 | Open ports | 0 |
 | Network interfaces | 4 (`lo`, `eth0`, `dummy0`, `sit0`), IPv6 enabled |
 
-## 5. Next steps
+## Next steps
 
 * [x] Integrate a C daemon as a Buildroot package (external tree, `BR2_EXTERNAL`)
 * [ ] Fix findings 2 to 8
