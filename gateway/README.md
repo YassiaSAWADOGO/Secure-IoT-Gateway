@@ -141,17 +141,10 @@ make
 | Open ports | 0 |
 | Network interfaces | 4 (`lo`, `eth0`, `dummy0`, `sit0`), IPv6 enabled |
 
-**Fixes so far:**
-
-| # | Fix | How it is verified |
-|---|---|---|
-| 9 | `GATEWAYD_USERS` creates a locked system user; the init script starts the daemon with `start-stop-daemon -c gatewayd` | `ps` shows `gatewayd`, not `root`, as the process owner |
-| 1 | A SHA-512 hash (`openssl passwd -6`) lives in a git-ignored file; `post-build.sh` writes it into `/etc/shadow` and fails the build if it is missing (fail closed) | Login asks for a password; a wrong one is rejected |
-
 ## 5. Next steps
 
 * [x] Integrate a C daemon as a Buildroot package (external tree, `BR2_EXTERNAL`)
-* [ ] Fix findings 1 to 9
+* [ ] Fix findings 2 to 8
 * [ ] SELinux in enforcing mode, with a policy for the daemon
 * [ ] nftables firewall (IPv4 and IPv6)
 
