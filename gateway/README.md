@@ -84,9 +84,9 @@ QEMU (acts as bootloader) → kernel with "root=/dev/vda console=ttyAMA0"
 |-|-|-|
 |1|`root` has no password (empty field in `/etc/shadow`)|✅ Fixed: password hash kept outside Git, written into `/etc/shadow` by a post-build script (the build fails if it is missing)|
 |2|Login prompt on the serial console (reachable through UART on real hardware)|Restrict in production|
-|3|BusyBox is **setuid root**: an 800 KB binary that starts as root|Build BusyBox without setuid|
-|4|`crond` running with no use|Remove the service|
-|5|`/tmp` and `/dev/shm` mounted without `nosuid,nodev,noexec`|Add these options in `/etc/fstab`|
+|3|BusyBox is **setuid root**: an 800 KB binary that starts as root|✅ Fixed: setuid bit removed by a post-fakeroot script; the build fails if any setuid/setgid file remains. *Verified: `find / -xdev -perm -4000` returns nothing* |
+|4|`crond` running with no use|✅ Fixed: `crond` and `crontab` disabled through a BusyBox config fragment. *Verified: no `crond` at boot, command not found*|
+|5|`/tmp` and `/dev/shm` mounted without `nosuid,nodev,noexec`|✅ Fixed: `nosuid,nodev,noexec` set through a rootfs overlay. *Verified: a binary copied to `/tmp` gets `Permission denied`, even as root*|
 |6|Unused `dummy0` and `sit0` interfaces|Remove these features from the kernel|
 |7|IPv6 enabled|Disable it or filter it in the firewall|
 |8|Exact kernel version and build information readable by any user|Keep the kernel updated, reproducible build|
@@ -104,6 +104,7 @@ br2-external/
 ├── Config.in                # adds the package to menuconfig
 ├── external.mk              # includes every package recipe
 ├── configs/gateway_defconfig
+├── board/gateway/           # post-build.sh, post-fakeroot.sh, busybox.fragment, rootfs-overlay/
 ├── package/gatewayd/        # Config.in, gatewayd.mk (generic-package), S90gatewayd
 └── src/gatewayd/            # gatewayd.c, Makefile
 ```
@@ -141,6 +142,17 @@ make
 | Open ports | 0 |
 | Network interfaces | 4 (`lo`, `eth0`, `dummy0`, `sit0`), IPv6 enabled |
 
+**How the fixes are applied** (Buildroot itself is never modified):
+
+| Mechanism | Used for |
+|---|---|
+| Package recipe (`GATEWAYD_USERS`) | Dedicated daemon user (finding 9) |
+| Post-build script | Root password hash written into `/etc/shadow` (finding 1) |
+| BusyBox config fragment | `crond` and `crontab` disabled (finding 4) |
+| Rootfs overlay | Hardened `/etc/fstab` (finding 5) |
+| Post-fakeroot script | Setuid removed after permissions are applied; the build fails if any setuid/setgid file remains (finding 3) |
+
+> Known limit: `noexec` blocks direct execution, not a script read by an interpreter (`sh /tmp/script` still runs). Fewer interpreters and SELinux confinement address this later.
 ## Next steps
 
 * [x] Integrate a C daemon as a Buildroot package (external tree, `BR2_EXTERNAL`)
