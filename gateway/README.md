@@ -82,7 +82,7 @@ QEMU (acts as bootloader) → kernel with "root=/dev/vda console=ttyAMA0"
 
 |#|Finding|Planned fix|
 |-|-|-|
-|1|`root` has no password (empty field in `/etc/shadow`)|Strong password or locked account|
+|1|`root` has no password (empty field in `/etc/shadow`)|✅ Fixed: password hash kept outside Git, written into `/etc/shadow` by a post-build script (the build fails if it is missing)|
 |2|Login prompt on the serial console (reachable through UART on real hardware)|Restrict in production|
 |3|BusyBox is **setuid root**: an 800 KB binary that starts as root|Build BusyBox without setuid|
 |4|`crond` running with no use|Remove the service|
@@ -90,7 +90,7 @@ QEMU (acts as bootloader) → kernel with "root=/dev/vda console=ttyAMA0"
 |6|Unused `dummy0` and `sit0` interfaces|Remove these features from the kernel|
 |7|IPv6 enabled|Disable it or filter it in the firewall|
 |8|Exact kernel version and build information readable by any user|Keep the kernel updated, reproducible build|
-|9| `gatewayd` runs as **root**: once it parses network data, any exploitable bug gives full control of the gateway | Dedicated unprivileged user, then SELinux confinement |
+|9| `gatewayd` runs as **root**: once it parses network data, any exploitable bug gives full control of the gateway |✅ Fixed: dedicated `gatewayd` user (no shell, no password); SELinux confinement planned|
 
 **Already good:** no open ports, system accounts without a login shell (`/bin/false`), a single setuid file.
 
@@ -140,3 +140,26 @@ Starting gatewayd: OK
 make BR2_EXTERNAL=<path>/gateway/br2-external gateway_defconfig
 make
 ```
+
+---
+
+## Step 3 — Hardening (in progress)
+
+**Baseline, before hardening:**
+
+| Metric | Before |
+|---|---|
+| Kernel | 12 MB |
+| Root filesystem | 4.3 MB |
+| BusyBox commands | 279, setuid root |
+| Boot scripts | 7, of which 5 resident daemons |
+| RAM used | 11 MB |
+| Open ports | 0 |
+| Network interfaces | 4 (`lo`, `eth0`, `dummy0`, `sit0`), IPv6 enabled |
+
+**Fixes so far:**
+
+| # | Fix | How it is verified |
+|---|---|---|
+| 9 | `GATEWAYD_USERS` creates a locked system user; the init script starts the daemon with `start-stop-daemon -c gatewayd` | `ps` shows `gatewayd`, not `root`, as the process owner |
+| 1 | A SHA-512 hash (`openssl passwd -6`) lives in a git-ignored file; `post-build.sh` writes it into `/etc/shadow` and fails the build if it is missing (fail closed) | Login asks for a password; a wrong one is rejected |
