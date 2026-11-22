@@ -3,7 +3,7 @@
 Personal project: build, secure, then attack an IoT system end to end.
 This phase covers the **base system of the gateway**: a minimal embedded Linux built with Buildroot, first explored in its default configuration, then hardened.
 
-> **Step 1** — Build a first ARM64 embedded Linux, boot it under QEMU and analyze it **before any modification**.
+## Step 1 — Default build, analyzed before any change
 
 ---
 
