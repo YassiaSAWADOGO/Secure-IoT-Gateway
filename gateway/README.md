@@ -23,9 +23,9 @@ Full configuration: [`buildroot.config`](buildroot.config)
 
 ## 1. What Buildroot built
 
+Built with **Buildroot 2025.02.19** (LTS branch), the generated system has the following properties:
 |Property|Value|
 |-|-|
-|Buildroot|2025.02.19 (LTS branch)|
 |Architecture|ARM64 (Cortex-A53)|
 |C library|glibc|
 |Kernel|Linux 6.12.27 (LTS branch), built with GCC 13.4.0|
