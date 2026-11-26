@@ -23,20 +23,21 @@ Full configuration: [`buildroot.config`](buildroot.config)
 
 ## 1. What Buildroot built
 
-Built with **Buildroot 2025.02.19** (LTS branch), the generated system has the following properties:
-|Property|Value|
-|-|-|
-|Architecture|ARM64 (Cortex-A53)|
-|C library|glibc|
-|Kernel|Linux 6.12.27 (LTS branch), built with GCC 13.4.0|
-|Root filesystem|ext4, 60 MB, of which **4 MB used**|
+Built with **Buildroot 2025.02.19** (LTS branch), for an **ARM64 (Cortex-A53)** target using **glibc**.
 
-|Building block|Location|Notes|
-|-|-|-|
-|Cross-compilation toolchain|`output/host/`|`aarch64-buildroot-linux-gnu`: builds on an x86-64 Linux PC for an ARM64 Linux target. Its sysroot (`output/staging`) keeps development headers and libraries; the final rootfs only keeps what is needed at runtime.|
-|Bootloader|—|None: QEMU loads the kernel directly.|
-|Kernel|`output/images/Image` (12 MB)|Three times larger than the rest of the system.|
-|Root filesystem|`output/images/rootfs.ext2` (60 MB)|Generated from `output/target/` (4.3 MB). Final ownership and permissions (root, setuid) are only applied when the image is created, through fakeroot. This image is QEMU's disk and keeps changes made at runtime.|
+**On the build machine** (x86-64 Debian):
+
+| Component | Location | Details |
+|---|---|---|
+| Cross-compilation toolchain | `output/host/` | `aarch64-buildroot-linux-gnu`, GCC 13.4.0, built by Buildroot from source. Its sysroot (`output/staging`) holds development headers and libraries; none of it reaches the target, so the gateway has no compiler. |
+
+**On the target** (what QEMU boots):
+
+| Component | Location | Details |
+|---|---|---|
+| Bootloader | — | None: QEMU loads the kernel directly. |
+| Kernel | `output/images/Image` | Linux 6.12.27 (LTS branch), 12 MB: three times larger than the rest of the system. |
+| Root filesystem | `output/images/rootfs.ext2` | ext4 image of 60 MB, of which 4.3 MB used, generated from `output/target/`. Ownership and permissions (root owner, setuid bits) are only applied when the image is created, through fakeroot. QEMU uses this image as its disk, so changes made at runtime persist. |
 
 **Emulated machine:** generic ARM64 `virt` board, 1 core, 128 MB of RAM. The rootfs is exposed as a virtio disk (`/dev/vda`), the console is on the serial port (`ttyAMA0`).
 
