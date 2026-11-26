@@ -80,7 +80,7 @@ QEMU (acts as bootloader) → kernel with "root=/dev/vda console=ttyAMA0"
 
 ## 4. Security findings
 
-|#|Finding|Planned fix|
+|#|Finding|Fixed or Accepted|
 |-|-|-|
 |1|`root` has no password (empty field in `/etc/shadow`)|✅ Fixed: password hash kept outside Git, written into `/etc/shadow` by a post-build script (the build fails if it is missing)|
 |2|Login prompt on the serial console (reachable through UART on real hardware)|Accepted for now: only access under QEMU; to restrict on real hardware|
