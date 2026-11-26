@@ -83,13 +83,13 @@ QEMU (acts as bootloader) → kernel with "root=/dev/vda console=ttyAMA0"
 |#|Finding|Planned fix|
 |-|-|-|
 |1|`root` has no password (empty field in `/etc/shadow`)|✅ Fixed: password hash kept outside Git, written into `/etc/shadow` by a post-build script (the build fails if it is missing)|
-|2|Login prompt on the serial console (reachable through UART on real hardware)|Restrict in production|
+|2|Login prompt on the serial console (reachable through UART on real hardware)|Accepted for now: only access under QEMU; to restrict on real hardware|
 |3|BusyBox is **setuid root**: an 800 KB binary that starts as root|✅ Fixed: setuid bit removed by a post-fakeroot script; the build fails if any setuid/setgid file remains. *Verified: `find / -xdev -perm -4000` returns nothing* |
 |4|`crond` running with no use|✅ Fixed: `crond` and `crontab` disabled through a BusyBox config fragment. *Verified: no `crond` at boot, command not found*|
 |5|`/tmp` and `/dev/shm` mounted without `nosuid,nodev,noexec`|✅ Fixed: `nosuid,nodev,noexec` set through a rootfs overlay. *Verified: a binary copied to `/tmp` gets `Permission denied`, even as root*|
-|6|Unused `dummy0` and `sit0` interfaces|Remove these features from the kernel|
-|7|IPv6 enabled|Disable it or filter it in the firewall|
-|8|Exact kernel version and build information readable by any user|Keep the kernel updated, reproducible build|
+|6|Unused `dummy0` and `sit0` interfaces|Accepted: no traffic on `dummy0`; `sit0` packets will be dropped by the default-deny firewall|
+|7|IPv6 enabled|To be covered by the nftables firewall (`inet` table filters IPv4 and IPv6)|
+|8|Exact kernel version and build information readable by any user|✅ Compiler hardening verified on target binaries with `readelf` (PIE, full RELRO, SSP strong); FORTIFY_SOURCE raised from 1 to 2: checked libc functions in BusyBox 12 → 19 (the `printf` family, blocking format-string `%n` writes). Kernel version left visible (hiding it is security by obscurity)|
 |9| `gatewayd` runs as **root**: once it parses network data, any exploitable bug gives full control of the gateway |✅ Fixed: dedicated `gatewayd` user (no shell, no password); SELinux confinement planned|
 
 **Already good:** no open ports, system accounts without a login shell (`/bin/false`), a single setuid file.
@@ -132,16 +132,20 @@ make
 
 **Baseline, before hardening:**
 
-| Metric | Before |
-|---|---|
-| Kernel | 12 MB |
-| Root filesystem | 4.3 MB |
-| BusyBox commands | 279, setuid root |
-| Boot scripts | 7, of which 5 resident daemons |
-| RAM used | 11 MB |
-| Open ports | 0 |
-| Network interfaces | 4 (`lo`, `eth0`, `dummy0`, `sit0`), IPv6 enabled |
+| Metric | Before | After |
+|---|---|---|
+| Kernel | 12 MB | 12 MB (kernel findings accepted, see below) |
+| Root filesystem | 4.3 MB | X MB |
+| BusyBox commands | 279, setuid root | 277, no setuid |
+| Setuid/setgid files | 1 | 0 (the build fails otherwise) |
+| Boot scripts | 7, of which 5 resident daemons | 6, of which 4 resident daemons |
+| Writable mounts allowing execution (`/tmp`, `/dev/shm`) | 2 | 0 |
+| Checked libc functions in BusyBox (FORTIFY_SOURCE) | 12 | 19 |
+| RAM used | 11 MB | 11 MB |
+| Open ports | 0 | 0 |
+| Network interfaces | 4, IPv6 enabled | 4 (IPv6 to be filtered by nftables) |
 
+On a system that is already minimal, hardening barely changes the size: the gain is in privileges (no setuid file, no unneeded root daemon, no execution from writable mounts).
 **How the fixes are applied** (Buildroot itself is never modified):
 
 | Mechanism | Used for |
@@ -155,11 +159,11 @@ make
 > Known limit: `noexec` blocks direct execution, not a script read by an interpreter (`sh /tmp/script` still runs). Fewer interpreters and SELinux confinement address this later.
 ## Next steps
 
-* [x] Integrate a C daemon as a Buildroot package (external tree, `BR2_EXTERNAL`)
-* [ ] Fix findings 2, 6, 7 and 8
-* [ ] SELinux in enforcing mode, with a policy for the daemon
-* [ ] nftables firewall (IPv4 and IPv6)
-
+- [x] Integrate a C daemon as a Buildroot package (external tree, `BR2_EXTERNAL`)
+- [x] Audit and harden the default image (findings 1 to 9)
+- [ ] Mosquitto MQTT broker with mutual TLS and per-device ACLs
+- [ ] nftables firewall (IPv4 and IPv6), default deny
+- [ ] SELinux in enforcing mode, with a policy for the daemon
 ---
 
 *References:* [*Buildroot manual*](https://buildroot.org/downloads/manual/manual.html) *· "Linux embarqué", Pierre Ficheux (Eyrolles)*
