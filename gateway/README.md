@@ -128,14 +128,14 @@ make
 
 ---
 
-## Step 3 — Hardening (in progress)
+## Step 3 — Hardening (Done)
 
 **Baseline, before hardening:**
 
 | Metric | Before | After |
 |---|---|---|
 | Kernel | 12 MB | 12 MB (kernel findings accepted, see below) |
-| Root filesystem | 4.3 MB | X MB |
+| Root filesystem | 4.3 MB | 4.3 MB |
 | BusyBox commands | 279, setuid root | 277, no setuid |
 | Setuid/setgid files | 1 | 0 (the build fails otherwise) |
 | Boot scripts | 7, of which 5 resident daemons | 6, of which 4 resident daemons |
@@ -146,17 +146,9 @@ make
 | Network interfaces | 4, IPv6 enabled | 4 (IPv6 to be filtered by nftables) |
 
 On a system that is already minimal, hardening barely changes the size: the gain is in privileges (no setuid file, no unneeded root daemon, no execution from writable mounts).
-**How the fixes are applied** (Buildroot itself is never modified):
-
-| Mechanism | Used for |
-|---|---|
-| Package recipe (`GATEWAYD_USERS`) | Dedicated daemon user (finding 9) |
-| Post-build script | Root password hash written into `/etc/shadow` (finding 1) |
-| BusyBox config fragment | `crond` and `crontab` disabled (finding 4) |
-| Rootfs overlay | Hardened `/etc/fstab` (finding 5) |
-| Post-fakeroot script | Setuid removed after permissions are applied; the build fails if any setuid/setgid file remains (finding 3) |
 
 > Known limit: `noexec` blocks direct execution, not a script read by an interpreter (`sh /tmp/script` still runs). Fewer interpreters and SELinux confinement address this later.
+
 ## Next steps
 
 - [x] Integrate a C daemon as a Buildroot package (external tree, `BR2_EXTERNAL`)
