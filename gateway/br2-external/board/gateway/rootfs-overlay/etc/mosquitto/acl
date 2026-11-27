@@ -1,0 +1,7 @@
+# node1 (the ESP32 sensor) may only publish its own measurements
+user node1
+topic write sensors/node1/#
+
+# monitor (dashboard) may only read
+user monitor
+topic read sensors/#

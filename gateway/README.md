@@ -10,14 +10,25 @@ This phase covers the **base system of the gateway**: a minimal embedded Linux b
 ## Reproduce
 
 ```bash
+# 1. Buildroot (LTS branch)
 git clone https://gitlab.com/buildroot.org/buildroot.git && cd buildroot
 git checkout 2025.02.19
-make qemu_aarch64_virt_defconfig
+
+# 2. Secrets, generated locally and never committed
+openssl passwd -6 > <repo>/gateway/br2-external/board/gateway/root-passwd-hash
+<repo>/gateway/tools/gen-pki.sh        # lab PKI, written to ~/embarque/pki
+
+# 3. Configure with the external tree, then build
+make BR2_EXTERNAL=<repo>/gateway/br2-external gateway_defconfig
 make
-output/images/start-qemu.sh      # login: root ; clean shutdown: poweroff
+
+# 4. Boot (MQTT over TLS forwarded to 127.0.0.1:8883; clean shutdown: poweroff)
+<repo>/gateway/run-qemu.sh
 ```
 
-Full configuration: [`buildroot.config`](buildroot.config)
+The build fails on purpose if the password hash or the broker's TLS material is missing.
+
+Configuration: [`gateway_defconfig`](br2-external/configs/gateway_defconfig)
 
 ---
 
@@ -123,7 +134,6 @@ Starting gatewayd: OK
 **Rebuild the gateway image:**
 
 ```bash
-make BR2_EXTERNAL=<path>/gateway/br2-external gateway_defconfig
 make
 ```
 
@@ -150,11 +160,26 @@ On a system that is already minimal, hardening barely changes the size: the gain
 
 > Known limit: `noexec` blocks direct execution, not a script read by an interpreter (`sh /tmp/script` still runs). Fewer interpreters and SELinux confinement address this later.
 
+## Step 4 — MQTT broker secured with mutual TLS
+
+Mosquitto runs on the gateway. It was first deployed deliberately open (plaintext, anonymous) to measure the attack surface, then locked down:
+
+- **Mutual TLS** on port 8883 only: every client must present a certificate signed by the project CA; the plaintext port is gone.
+- **Per-device ACLs**: the certificate's CN becomes the MQTT identity; `node1` may only publish to `sensors/node1/#`, `monitor` may only read.
+- **Keys stay outside Git**: `tools/gen-pki.sh` builds the lab PKI in a separate folder; the post-build script copies only the broker's material into the image, and the build fails if it is missing.
+
+| Before (open broker) | After (mutual TLS + ACL) |
+|---|---|
+| ![Sniffing and eavesdropping succeed](docs/img/mqtt-before-sniff-eavesdrop.png) | ![Traffic encrypted, eavesdropper rejected](docs/img/mqtt-after-sniff-eavesdrop.png) |
+| ![Injected value reaches the dashboard](docs/img/mqtt-before-inject.png) | ![Injector rejected, only the real value arrives](docs/img/mqtt-after-inject.png) |
+
+---
+
 ## Next steps
 
 - [x] Integrate a C daemon as a Buildroot package (external tree, `BR2_EXTERNAL`)
 - [x] Audit and harden the default image (findings 1 to 9)
-- [ ] Mosquitto MQTT broker with mutual TLS and per-device ACLs
+- [x] Mosquitto MQTT broker with mutual TLS and per-device ACLs
 - [ ] nftables firewall (IPv4 and IPv6), default deny
 - [ ] SELinux in enforcing mode, with a policy for the daemon
 ---

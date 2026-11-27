@@ -14,3 +14,15 @@ if [ ! -s "$HASH_FILE" ]; then
 fi
 HASH="$(cat "$HASH_FILE")"
 sed -i "s|^root:[^:]*:|root:${HASH}:|" "$TARGET_DIR/etc/shadow"
+
+# Broker TLS material, read from the PKI kept outside Git (see tools/gen-pki.sh)
+PKI_DIR="${GATEWAY_PKI_DIR:-$HOME/embarque/pki}"
+for f in ca.crt broker.crt broker.key; do
+    if [ ! -s "$PKI_DIR/$f" ]; then
+        echo "ERROR: $PKI_DIR/$f is missing (run tools/gen-pki.sh)" >&2
+        exit 1
+    fi
+done
+install -d -m 0755 "$TARGET_DIR/etc/mosquitto/certs"
+install -m 0644 "$PKI_DIR/ca.crt" "$PKI_DIR/broker.crt" "$TARGET_DIR/etc/mosquitto/certs/"
+install -m 0600 "$PKI_DIR/broker.key" "$TARGET_DIR/etc/mosquitto/certs/broker.key"
