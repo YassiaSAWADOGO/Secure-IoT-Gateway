@@ -5,3 +5,8 @@ managed_components/
 # Backup copies of the configuration
 sdkconfig.old
 sdkconfig.avant
+*.key
+05-mqtt-mtls/sdkconfig
+05-mqtt-mtls/main/*.crt
+05-mqtt-mtls/main/*.key
+05-mqtt-mtls/sdkconfig
